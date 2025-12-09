@@ -1,0 +1,5 @@
+# Static analysis tools for Solidity
+slither-analyzer==0.10.0
+
+# Additional useful tools
+crytic-compile==0.3.6

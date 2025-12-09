@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EIP-7702 Delegation Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: #2d3748;
+            font-size: 22px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c00;
+        }
+
+        .alert-success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #0a0;
+        }
+
+        .alert-warning {
+            background: #ffeaa7;
+            border: 1px solid #fdcb6e;
+            color: #e17055;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            color: #1976d2;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success {
+            background: #48bb78;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #38a169;
+        }
+
+        .btn-danger {
+            background: #f56565;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #e53e3e;
+        }
+
+        .btn-secondary {
+            background: #718096;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #4a5568;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .info-box {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #718096;
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: #2d3748;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-delegated {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-normal {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .status-connected {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-disconnected {
+            background: #fecaca;
+            color: #7f1d1d;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .tab:hover {
+            border-color: #667eea;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .wallet-connect-box {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .wallet-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+
+        .backend-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="card">
+            <h1>🔐 EIP-7702 Delegation Manager</h1>
+            <p class="subtitle">Manage your account delegation and execute Type 4 transactions on Sepolia Testnet</p>
+            
+            <!-- Backend Status -->
+            <div class="backend-status">
+                <span>Backend API:</span>
+                <span id="backendStatus" class="status-badge status-disconnected">Checking...</span>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div id="errorAlert" class="alert alert-error">
+            <strong>Error:</strong> <span id="errorMessage"></span>
+        </div>
+        <div id="successAlert" class="alert alert-success">
+            <strong>Success:</strong> <span id="successMessage"></span>
+        </div>
+
+        <!-- Wallet Connection -->
+        <div id="walletConnectSection" class="card">
+            <div class="wallet-connect-box">
+                <div class="wallet-icon">👛</div>
+                <h2>Connect Your Wallet</h2>
+                <p class="subtitle">Connect your MetaMask wallet to get started</p>
+                <button class="btn" onclick="connectWallet()">
+                    Connect Wallet
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="mainContent" class="hidden">
+            <!-- Account Info -->
+            <div id="networkWarning" class="alert alert-warning hidden">
+                <strong>⚠️ Wrong Network!</strong>
+                <p>You're not connected to Sepolia Testnet...</p>
+                <button class="btn" onclick="switchToSepolia()">
+                    Switch to Sepolia Testnet
+                </button>
+            </div>
+            <div class="card">
+                <h2>💼 Connected Account</h2>
+                <div class="info-box">
+                    <div class="info-row">
+                        <span class="info-label">Address:</span>
+                        <span class="info-value" id="accountAddress">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Balance:</span>
+                        <span class="info-value" id="accountBalance">0 ETH</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Network:</span>
+                        <!-- <span class="info-value">Sepolia Testnet</span> -->
+                         <span class="info-value" id="networkName">Checking...</span>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="refreshAll()">
+                    🔄 Refresh
+                </button>
+            </div>
+
+            <!-- Delegation Status -->
+            <div class="card">
+                <h2>🔍 Delegation Status</h2>
+                <div class="info-box">
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span id="delegationStatus" class="status-badge status-normal">Normal EOA</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Code Length:</span>
+                        <span class="info-value" id="codeLength">0 bytes</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Account Type:</span>
+                        <span class="info-value" id="accountType">Externally Owned Account</span>
+                    </div>
+                    <div id="delegationDetails" class="hidden">
+                        <div class="info-row">
+                            <span class="info-label">Magic Number:</span>
+                            <span class="info-value" id="magicNumber">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Delegated To:</span>
+                            <span class="info-value" id="delegatedTo">-</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn" onclick="checkDelegation()">
+                    <span id="checkDelegationBtn">Check Delegation</span>
+                </button>
+            </div>
+
+            <!-- Manage Delegation -->
+            <div class="card">
+                <h2>⚙️ Manage Delegation (Type 4 Transactions)</h2>
+                
+                <div class="alert alert-info show">
+                    ℹ️ These buttons now execute Foundry scripts via backend API to create <strong>Type 4 (EIP-7702)</strong> transactions.
+                </div>
+                
+                <!-- <div class="alert alert-info show">
+                    <strong>✨ Secure Signing:</strong> Click below to sign with MetaMask.
+                    No private keys needed!
+                </div> -->
+
+                <div class="form-group">
+                    <label>Implementation Contract Address</label>
+                    <input type="text" id="implementationAddress" placeholder="0x...">
+                </div>
+
+                <div class="form-group">
+                    <label>Private Key (Required for Type 4 Transaction)</label>
+                    <input type="password" id="privateKeyInput" placeholder="0x... (kept secure, not stored)">
+                    <small style="color: #718096; display: block; margin-top: 5px;">
+                        ✅ We are not storing Private key. Private key needed to sign Type 4 transaction.
+                    </small>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="addDelegationViaBackend()" id="addDelegationBtnMain">
+                        <span>➕ Add Delegation (Type 4)</span>
+                    </button>
+                    <button class="btn btn-danger" onclick="removeDelegationViaBackend()" id="removeDelegationBtnMain">
+                        <span>➖ Remove Delegation (Type 4)</span>
+                    </button>
+
+                    <!-- Update onclick handlers -->
+                    <!-- <button class="btn btn-success" onclick="addDelegationWithSignature()" id="addDelegationBtnMain">
+                        ➕ Add Delegation (Sign with MetaMask)
+                    </button>
+
+                    <button class="btn btn-danger" onclick="removeDelegationWithSignature()" id="removeDelegationBtnMain">
+                        ➖ Remove Delegation (Sign with MetaMask)
+                    </button> -->
+                </div>
+            </div>
+
+            <!-- Send Transaction -->
+            <div class="card">
+                <h2>💸 Send Transaction (Type 4 - Standard)</h2>
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('native')">Native ETH</div>
+                    <div class="tab" onclick="switchTab('token')">ERC20 Token</div>
+                </div>
+                
+                <!-- Native ETH Form -->
+                <div id="nativeForm">
+                    <div class="form-group">
+                        <label>Recipient Address</label>
+                        <input type="text" id="nativeRecipient" placeholder="0x...">
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (ETH)</label>
+                        <input type="number" id="nativeAmount" placeholder="0.001" step="0.001">
+                    </div>
+                    <div class="btn-group">
+                        <button type="button" class="btn" onclick="sendNativeTransaction()">
+                            <span id="sendNativeBtn">Send ETH</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="cancelNativeTransaction()" disabled style="opacity: 0.5;">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Token Form -->
+                <div id="tokenForm" class="hidden">
+                    <div class="form-group">
+                        <label>Token Contract Address</label>
+                        <input type="text" id="tokenAddress" placeholder="0x...">
+                    </div>
+                    <div class="form-group">
+                        <label>Recipient Address</label>
+                        <input type="text" id="tokenRecipient" placeholder="0x...">
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (Tokens)</label>
+                        <input type="number" id="tokenAmount" placeholder="100" step="0.01">
+                    </div>
+                    <div class="btn-group">
+                        <button type="button" class="btn" onclick="sendTokenTransaction()">
+                            <span id="sendTokenBtn">Send Tokens</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="cancelTokenTransaction()" disabled style="opacity: 0.5;">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Hash -->
+            <div id="transactionCard" class="card hidden">
+                <h2>✅ Transaction Submitted</h2>
+                <div class="info-box">
+                    <div class="info-row">
+                        <span class="info-label">Transaction Hash:</span>
+                        <a id="txHashLink" href="#" target="_blank" class="info-value" style="word-break: break-all;"></a>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Type:</span>
+                        <span id="txType" class="info-value">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

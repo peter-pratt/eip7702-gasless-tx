@@ -1,0 +1,141 @@
+#!/bin/bash
+
+# Deploy BatchCallAndSponsor contract to specified network
+# Usage: sh deploy network --{network-name}
+# Example: sh deploy network --sepolia
+
+set -e  # Exit on any error
+
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+    echo "📄 Loading environment variables from .env file..."
+    export $(grep -v '^#' .env | xargs)
+fi
+
+# Function to show usage
+show_usage() {
+    echo "Usage: sh deploy network --{network-name}"
+    echo ""
+    echo "Supported networks:"
+    echo "  --mainnet     Ethereum Mainnet"
+    echo "  --sepolia     Sepolia Testnet" 
+    echo "  --polygon     Polygon Mainnet"
+    echo "  --base        Base Mainnet"
+    echo "  --bsc         BSC Mainnet"
+    echo "  --localhost   Local Anvil (default RPC: http://127.0.0.1:8545)"
+    echo ""
+    echo "Environment variables (from .env file or exported):"
+    echo "  PRIVATE_KEY              Your private key"
+    echo "  RPC_URL                  Default RPC URL (optional)"
+    echo "  MAINNET_RPC_URL          Ethereum Mainnet RPC (optional)"
+    echo "  SEPOLIA_RPC_URL          Sepolia Testnet RPC (optional)"
+    echo "  POLYGON_RPC_URL          Polygon Mainnet RPC (optional)"
+    echo "  BASE_RPC_URL             Base Mainnet RPC (optional)"
+    echo "  BSC_RPC_URL              BSC Mainnet RPC (optional)"
+    echo ""
+    echo "Examples:"
+    echo "  sh deploy network --localhost"
+    echo "  sh deploy network --sepolia    # Uses .env file"
+    echo "  sh deploy network --mainnet    # Uses .env file"
+    echo ""
+    echo "Sample .env file:"
+    echo "  PRIVATE_KEY=0x1234567890abcdef..."
+    echo "  MAINNET_RPC_URL=https://eth-mainnet.alchemyapi.io/v2/YOUR_KEY"
+    echo "  SEPOLIA_RPC_URL=https://eth-sepolia.alchemyapi.io/v2/YOUR_KEY"
+}
+
+# Check if correct number of arguments
+if [ $# -ne 2 ] || [ "$1" != "network" ]; then
+    show_usage
+    exit 1
+fi
+
+NETWORK_FLAG=$2
+
+# Parse network flag and set parameters
+case $NETWORK_FLAG in
+    --mainnet)
+        NETWORK="mainnet"
+        CHAIN_ID=1
+        NETWORK_RPC_URL=${MAINNET_RPC_URL}
+        VERIFY_FLAG="--verify"
+        ;;
+    --sepolia)
+        NETWORK="sepolia"
+        CHAIN_ID=11155111
+        NETWORK_RPC_URL=${SEPOLIA_RPC_URL}
+        VERIFY_FLAG="--verify"
+        ;;
+    --polygon)
+        NETWORK="polygon"
+        CHAIN_ID=137
+        NETWORK_RPC_URL=${POLYGON_RPC_URL}
+        VERIFY_FLAG="--verify"
+        ;;
+    --base)
+        NETWORK="base"
+        CHAIN_ID=8453
+        NETWORK_RPC_URL=${BASE_RPC_URL}
+        VERIFY_FLAG="--verify"
+        ;;
+    --bsc)
+        NETWORK="bsc"
+        CHAIN_ID=56
+        NETWORK_RPC_URL=${BSC_RPC_URL}
+        VERIFY_FLAG="--verify"
+        ;;
+    --localhost)
+        NETWORK="localhost"
+        CHAIN_ID=31337
+        NETWORK_RPC_URL="http://127.0.0.1:8545"
+        VERIFY_FLAG=""
+        ;;
+    *)
+        echo "❌ Unknown network: $NETWORK_FLAG"
+        show_usage
+        exit 1
+        ;;
+esac
+
+# Use network-specific RPC URL, fallback to generic RPC_URL, or use default
+FINAL_RPC_URL=${NETWORK_RPC_URL}
+
+echo "🚀 Deploying BatchCallAndSponsor to $NETWORK"
+echo "📡 RPC URL: $FINAL_RPC_URL"
+echo "🔗 Chain ID: $CHAIN_ID"
+
+# Check for private key (except for localhost)
+if [ "$NETWORK" != "localhost" ] && [ -z "$PRIVATE_KEY" ]; then
+    echo "❌ PRIVATE_KEY environment variable is required for $NETWORK"
+    echo "   Export your private key: export PRIVATE_KEY=0x..."
+    exit 1
+fi
+
+# Build contracts first
+echo "🔨 Building contracts..."
+forge build
+
+# Prepare forge script command
+FORGE_CMD="forge script script/DeployBatchCallAndSponsor.s.sol:DeployBatchCallAndSponsor --rpc-url $FINAL_RPC_URL --broadcast"
+
+# Add private key if provided
+if [ -n "$PRIVATE_KEY" ]; then
+    FORGE_CMD="$FORGE_CMD --private-key $PRIVATE_KEY"
+fi
+
+# Add verify flag for non-localhost networks
+if [ -n "$VERIFY_FLAG" ]; then
+    FORGE_CMD="$FORGE_CMD $VERIFY_FLAG"
+fi
+
+# Add verbose output
+FORGE_CMD="$FORGE_CMD -vvv"
+
+echo "📦 Deploying contract..."
+echo "Running: $FORGE_CMD"
+
+# Execute the deployment
+eval $FORGE_CMD
+
+echo "🎉 Deployment completed!"
+echo "📖 Check script/addressBook.json for the deployed address" 
