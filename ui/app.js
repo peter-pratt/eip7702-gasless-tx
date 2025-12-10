@@ -381,6 +381,12 @@ async function addDelegationViaBackend() {
         return;
     }
 
+    // Check if delegation is already active AND private key is stored
+    if (delegationActive && userPrivateKey && implementation_Address) {
+        showError('Delegation is already active for this session!\n\nImplementation: ' + implementation_Address + '\n\nYou can now send transactions. To change delegation, please remove it first.');
+        return;
+    }
+
     const implementationAddress = document.getElementById('implementationAddress').value;
     const privateKey = document.getElementById('privateKeyInput').value;
 
@@ -477,6 +483,12 @@ async function removeDelegationViaBackend() {
 
     if (!backendAvailable) {
         showError('Backend API not available. Please start the backend server:\n\ncd backend && npm start');
+        return;
+    }
+
+    // Check if delegation is active
+    if (!delegationActive) {
+        showError('No active delegation found! Please add delegation first.');
         return;
     }
 
@@ -685,8 +697,8 @@ async function sendNativeTransaction() {
         if (error.name === 'AbortError') {
             console.log('❌ Transaction cancelled by user');
         } else {
-            showError('Transaction failed: ' + error.message);
-            console.error('Send native error:', error);
+            showError('Transaction failed: ');
+            console.error('Send native error:');
         }
     } finally {
         btnSpan.innerHTML = 'Send ETH';
@@ -807,8 +819,8 @@ async function sendTokenTransaction() {
         if (error.name === 'AbortError') {
             console.log('❌ Transaction cancelled by user');
         } else {
-            showError('Transaction failed: ' + error.message);
-            console.error('Send token error:', error);
+            showError('Transaction failed: ');
+            console.error('Send token error:');
         }
     } finally {
         btnSpan.innerHTML = 'Send Tokens';
