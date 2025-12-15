@@ -25,6 +25,22 @@ EIP-7702 introduces account abstraction by allowing Externally Owned Accounts (E
 git clone <this-repo>
 cd gasless-transactions
 forge install
+
+$curl -L https://foundry.paradigm.xyz | bash
+$ foundryup
+
+#if needed
+$ git rm --cached foundry
+$ rm -rf .git/modules/foundry
+$ cat .gitmodules
+
+$ forge install foundry-rs/forge-std
+$ forge install OpenZeppelin/openzeppelin-contracts
+
+$ ls -la lib/
+#
+
+$ forge build
 ```
 
 ### 2. Environment Configuration
